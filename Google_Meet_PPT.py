@@ -6,7 +6,7 @@ Tampermonkey script long-polls this app on 127.0.0.1:8875 and drives Meet's mic 
 Tray icon is the only indicator:
     mic.ico          armed, mic muted
     redmic.ico       mic is live in Meet
-    faded mic.ico    not working (reason in the tooltip and in Settings)
+    fadedmic.ico     not working (reason in the tooltip and in Settings)
 """
 import ctypes
 import ctypes.wintypes as wt
@@ -49,6 +49,7 @@ LEGACY_WARN_S = 10.0
 
 ICON_FILE = "mic.ico"
 MIC_ON_ICON_FILE = "redmic.ico"
+FADED_ICON_FILE = "fadedmic.ico"
 
 APP_DIR = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "GoogleMeetPPT")
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
@@ -557,8 +558,7 @@ def load_icon(name, rgb):
 def build_icons():
     off = load_icon(ICON_FILE, (40, 160, 70))
     on = load_icon(MIC_ON_ICON_FILE, (200, 40, 30))
-    bad = off.convert("LA").convert("RGBA")
-    bad.putalpha(bad.getchannel("A").point(lambda a: a * 40 // 100))
+    bad = load_icon(FADED_ICON_FILE, (128, 128, 128))
     return {"off": off, "on": on, "bad": bad}
 
 
