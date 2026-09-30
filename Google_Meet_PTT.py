@@ -1,6 +1,6 @@
-"""Google Meet PPT — system-wide hard push-to-talk for Google Meet (Windows only).
+"""Google Meet PTT — system-wide hard push-to-talk for Google Meet (Windows only).
 
-The PTT key is read with GetAsyncKeyState (no keyboard hook). The "Google Meet PPT"
+The PTT key is read with GetAsyncKeyState (no keyboard hook). The "Google Meet PTT"
 Tampermonkey script long-polls this app on 127.0.0.1:8875 and drives Meet's mic button.
 
 Tray icon is the only indicator:
@@ -26,7 +26,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from tkinter import ttk
 
 if os.name != "nt":
-    raise SystemExit("Google Meet PPT працює лише на Windows.")
+    raise SystemExit("Google Meet PTT працює лише на Windows.")
 
 try:
     import pystray
@@ -34,8 +34,8 @@ try:
 except ImportError:
     pystray = None
 
-APP_NAME = "Google Meet PPT"
-APP_ID = "roman.googlemeet.ppt"
+APP_NAME = "Google Meet PTT"
+APP_ID = "roman.googlemeet.ptt"
 HOST = "127.0.0.1"
 PORT = 8875
 PROTO = 2                         # must match PROTO in the userscript
@@ -51,7 +51,7 @@ ICON_FILE = "mic.ico"
 MIC_ON_ICON_FILE = "redmic.ico"
 FADED_ICON_FILE = "fadedmic.ico"
 
-APP_DIR = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "GoogleMeetPPT")
+APP_DIR = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "GoogleMeetPTT")
 SETTINGS_PATH = os.path.join(APP_DIR, "settings.json")
 
 PTT_KEYS = {  # name -> (virtual-key code, label)
@@ -335,7 +335,7 @@ class Server(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "GoogleMeetPPT/5"
+    server_version = "GoogleMeetPTT/5"
     timeout = 20  # drop half-open connections instead of leaking threads
 
     def log_message(self, *_args):

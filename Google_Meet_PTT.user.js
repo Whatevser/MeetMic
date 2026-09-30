@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Google Meet PPT
-// @namespace    roman.googlemeet.ppt
+// @name         Google Meet PTT
+// @namespace    roman.googlemeet.ptt
 // @version      5.0.0
-// @description  Hard push-to-talk for Google Meet. The key is read system-wide by the Google Meet PPT app (127.0.0.1:8875); this script only drives Meet's mic button.
+// @description  Hard push-to-talk for Google Meet. The key is read system-wide by the Google Meet PTT app (127.0.0.1:8875); this script only drives Meet's mic button.
 // @match        https://meet.google.com/*
 // @noframes
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const BASE = 'http://127.0.0.1:8875';
-  const PROTO = 2; // must match PROTO in Google_Meet_PPT.py
+  const PROTO = 2; // must match PROTO in Google_Meet_PTT.py
   const HEADERS = { 'X-GMeet-PTT': String(PROTO), 'Content-Type': 'application/json' };
 
   const POLL_TIMEOUT_MS = 12000; // the app holds each poll for up to 8 s
@@ -26,13 +26,13 @@
 
   // One copy per page, even if the script got installed twice under different names.
   const root = document.documentElement;
-  if (root.hasAttribute('data-gmeet-ppt')) return;
-  root.setAttribute('data-gmeet-ppt', '');
+  if (root.hasAttribute('data-gmeet-ptt')) return;
+  root.setAttribute('data-gmeet-ptt', '');
 
   const ID = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   const now = () => performance.now();
-  const log = (...a) => console.log('[Meet PPT]', ...a);
-  const warn = (...a) => console.warn('[Meet PPT]', ...a);
+  const log = (...a) => console.log('[Meet PTT]', ...a);
+  const warn = (...a) => console.warn('[Meet PTT]', ...a);
 
   const S = {
     connected: false,
@@ -250,7 +250,7 @@
     }
   }, TICK_MS);
 
-  try { unsafeWindow.meetPpt = { state: S, findMic, reconcile }; } catch (_) {}
+  try { unsafeWindow.meetPtt = { state: S, findMic, reconcile }; } catch (_) {}
 
   log('loaded', ID);
   reconcile();
