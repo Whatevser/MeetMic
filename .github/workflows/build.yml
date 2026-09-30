@@ -1,0 +1,41 @@
+name: Build exe
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyinstaller pystray pillow
+
+      - name: Build
+        run: pyinstaller --noconfirm --onefile --windowed --icon mic.ico --add-data "mic.ico;." --add-data "redmic.ico;." --add-data "fadedmic.ico;." Google_Meet_PTT.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Google_Meet_PTT
+          path: dist/Google_Meet_PTT.exe
+
+      - name: Publish to the "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          body: Built from ${{ github.sha }}
+          make_latest: true
+          files: |
+            dist/Google_Meet_PTT.exe
+            Google_Meet_PTT.user.js

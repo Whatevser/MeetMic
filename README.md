@@ -6,7 +6,11 @@ System-wide hard push-to-talk for Google Meet on Windows.
 - `Google_Meet_PTT.user.js` — Tampermonkey script. Long-polls the app and drives Meet's mic button. Open its **Raw** link to install.
 - Tray icons: `mic.ico` armed, `redmic.ico` mic live, `fadedmic.ico` not working (reason in the tooltip).
 
-## Build
+## Download
+
+Every push to `main` builds the exe on GitHub Actions and puts it on the [latest release](https://github.com/Whatevser/MeetMic/releases/tag/latest): [Google_Meet_PTT.exe](https://github.com/Whatevser/MeetMic/releases/download/latest/Google_Meet_PTT.exe).
+
+## Build locally
 
 ```powershell
 pip install pyinstaller pystray pillow
