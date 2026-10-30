@@ -38,7 +38,7 @@ APP_NAME = "Google Meet PTT"
 APP_ID = "roman.googlemeet.ptt"
 HOST = "127.0.0.1"
 PORT = 8875
-PROTO = 2                         # must match PROTO in the userscript
+PROTO = 3                         # must match PROTO in the userscript; older scripts are refused and go hands-off
 AUTH_HEADER = "X-GMeet-PTT"       # web pages can't send custom headers cross-origin, so they can't drive us
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}  # blocks DNS-rebinding
 LEGACY_PATHS = {"/mic-command", "/meet-status", "/browser-key"}  # old userscript endpoints
@@ -247,7 +247,7 @@ class Hub:
             if not self.enabled:
                 problem = "PTT вимкнено"
             elif time.monotonic() - self.legacy_at < LEGACY_WARN_S:
-                problem = "стара версія скрипта в Tampermonkey — видали її"
+                problem = "стара копія скрипта в Tampermonkey — видали її"
             elif not clients:
                 problem = "Google Meet не підключено"
             elif target is None:

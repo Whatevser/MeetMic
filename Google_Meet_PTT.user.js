@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         Google Meet PTT
 // @namespace    roman.googlemeet.ptt
-// @version      5.1.0
+// @version      5.2.0
 // @description  Push-to-talk for Google Meet that never fights manual mic use. The key is read system-wide by the Google Meet PTT app (127.0.0.1:8875); this script only drives Meet's mic button.
 // @match        https://meet.google.com/*
 // @noframes
 // @run-at       document-idle
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
+// @updateURL    https://raw.githubusercontent.com/Whatevser/MeetMic/main/Google_Meet_PTT.user.js
+// @downloadURL  https://raw.githubusercontent.com/Whatevser/MeetMic/main/Google_Meet_PTT.user.js
 // @connect      127.0.0.1
 // ==/UserScript==
 
@@ -15,7 +17,7 @@
   'use strict';
 
   const BASE = 'http://127.0.0.1:8875';
-  const PROTO = 2; // must match PROTO in Google_Meet_PTT.py
+  const PROTO = 3; // must match PROTO in Google_Meet_PTT.py
   const HEADERS = { 'X-GMeet-PTT': String(PROTO), 'Content-Type': 'application/json' };
 
   const POLL_TIMEOUT_MS = 12000; // the app holds each poll for up to 8 s
