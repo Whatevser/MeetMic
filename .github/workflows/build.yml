@@ -3,6 +3,7 @@ name: Build exe
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -29,11 +30,11 @@ jobs:
           name: Google_Meet_PTT
           path: dist/Google_Meet_PTT.exe
 
-      - name: Publish to the "latest" release
+      - name: Publish release ("latest" for main, the tag's own release for v* tags)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: Latest build
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'latest' }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || 'Latest build' }}
           body: Built from ${{ github.sha }}
           make_latest: true
           files: |
