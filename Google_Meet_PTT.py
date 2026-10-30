@@ -1,4 +1,4 @@
-"""Google Meet PTT — system-wide hard push-to-talk for Google Meet (Windows only).
+"""Google Meet PTT — system-wide push-to-talk for Google Meet (Windows only).
 
 The PTT key is read with GetAsyncKeyState (no keyboard hook). The "Google Meet PTT"
 Tampermonkey script long-polls this app on 127.0.0.1:8875 and drives Meet's mic button.

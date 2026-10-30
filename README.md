@@ -1,6 +1,6 @@
 # MeetMic — Google Meet PTT
 
-System-wide hard push-to-talk for Google Meet on Windows.
+System-wide push-to-talk for Google Meet on Windows. It only undoes its own unmute: clicking the mic, Ctrl+D and Meet's own spacebar PTT keep working normally.
 
 - `Google_Meet_PTT.py` — tray app. Reads the PTT key with `GetAsyncKeyState` (no keyboard hook) and serves `127.0.0.1:8875`.
 - `Google_Meet_PTT.user.js` — Tampermonkey script. Long-polls the app and drives Meet's mic button. Open its **Raw** link to install.

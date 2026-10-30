@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Google Meet PTT
 // @namespace    roman.googlemeet.ptt
-// @version      5.0.0
-// @description  Hard push-to-talk for Google Meet. The key is read system-wide by the Google Meet PTT app (127.0.0.1:8875); this script only drives Meet's mic button.
+// @version      5.1.0
+// @description  Push-to-talk for Google Meet that never fights manual mic use. The key is read system-wide by the Google Meet PTT app (127.0.0.1:8875); this script only drives Meet's mic button.
 // @match        https://meet.google.com/*
 // @noframes
 // @run-at       document-idle
@@ -21,7 +21,7 @@
   const POLL_TIMEOUT_MS = 12000; // the app holds each poll for up to 8 s
   const RETRY_MS = 500;          // reconnect interval while the app is unreachable
   const CONFIRM_MS = 2000;       // one click in flight at a time; retried if Meet hasn't flipped by then
-  const RELEASE_MS = 3000;       // keep forcing mute this long after losing the app mid-transmit
+  const MAX_TRIES = 4;           // give up on a press/release after this many ignored clicks
   const TICK_MS = 500;           // safety-net re-check (Chrome stretches it to ~1 s in background tabs)
 
   // One copy per page, even if the script got installed twice under different names.
@@ -38,9 +38,12 @@
     connected: false,
     cmd: { enabled: false, open: false, target: false },
     v: -1,
-    releaseUntil: 0,
+    active: false,          // PTT held and this tab is the target
+    want: null,             // true = mute, false = unmute, null = hands off
+    owned: false,           // the mic is live because WE unmuted it on this press
     pending: null,          // { at, from }: click sent, waiting for Meet to flip
     fails: 0,               // clicks in a row that Meet ignored
+    lastMuted: null,        // last seen mic state, to spot manual changes
     mic: null,              // last findMic() result
     lastSent: '',
   };
@@ -85,11 +88,12 @@
     return { el: best.el, muted };
   }
 
-  // ---------- enforcement: mic open only while the app says so ----------
-  function desiredMuted() {
-    if (!S.connected) return now() < S.releaseUntil ? true : null; // null = hands off
-    if (!S.cmd.enabled) return null;
-    return !(S.cmd.open && S.cmd.target);
+  // ---------- PTT: act only on key press/release, never on anything else ----------
+  // Press: unmute only if muted, and remember we did. Release: mute only if we unmuted.
+  // Any mic change we didn't cause (your click, Ctrl+D, Meet's spacebar PTT, the host muting you)
+  // cancels our claim, so the script never undoes or fights what you or Meet did.
+  function isActive() {
+    return S.connected && S.cmd.enabled && S.cmd.open && S.cmd.target;
   }
 
   let busy = false;
@@ -103,6 +107,7 @@
       S.mic = mic;
       const muted = mic ? mic.muted : null;
 
+      // Our click landed, timed out, or the mic changed on its own (= manual).
       if (S.pending) {
         if (muted !== null && muted !== S.pending.from) {
           S.pending = null;
@@ -111,11 +116,31 @@
           S.pending = null;
           S.fails++;
           warn('Meet ignored the mic click', S.fails);
+          if (S.fails >= MAX_TRIES) S.want = null;
+        }
+      } else if (muted !== null && S.lastMuted !== null && muted !== S.lastMuted) {
+        if (S.owned || S.want !== null) log('manual mic change — PTT steps back');
+        S.owned = false;
+        S.want = null;
+      }
+      if (muted !== null) S.lastMuted = muted;
+
+      // Key edges.
+      const active = isActive();
+      if (active !== S.active) {
+        S.active = active;
+        S.fails = 0;
+        if (active) {
+          S.want = muted === true ? false : null;   // already live (or unknown): leave it alone
+          S.owned = S.want === false;
+        } else {
+          S.want = S.owned ? true : null;           // only close what we opened
+          S.owned = false;
         }
       }
 
-      const want = desiredMuted();
-      if (mic && muted !== null && want !== null && muted !== want && !S.pending) {
+      if (S.want !== null && muted === S.want) S.want = null;  // goal reached
+      if (mic && muted !== null && S.want !== null && !S.pending) {
         S.pending = { at: t, from: muted };
         mic.el.click();
         setTimeout(reconcile, CONFIRM_MS + 50);
@@ -168,8 +193,7 @@
   function lost() {
     if (S.connected) {
       S.connected = false;
-      // App vanished while we were transmitting: close the mic, then stop touching it.
-      if (S.cmd.enabled && S.cmd.open && S.cmd.target) S.releaseUntil = now() + RELEASE_MS;
+      // App vanished mid-press: reconcile() sees a release and closes the mic only if we opened it.
       warn('app unreachable — PTT inactive until it is back');
     }
     reconcile();
@@ -212,7 +236,6 @@
           req = null;
           if (!S.connected) log('connected to app');
           S.connected = true;
-          S.releaseUntil = 0;
           S.v = d.v;
           S.cmd = { enabled: !!d.enabled, open: !!d.open, target: !!d.target };
           reconcile();
