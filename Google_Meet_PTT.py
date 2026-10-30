@@ -35,17 +35,15 @@ except ImportError:
     pystray = None
 
 APP_NAME = "Google Meet PTT"
+APP_VERSION = "1.0"
 APP_ID = "roman.googlemeet.ptt"
 HOST = "127.0.0.1"
 PORT = 8875
-PROTO = 3                         # must match PROTO in the userscript; older scripts are refused and go hands-off
 AUTH_HEADER = "X-GMeet-PTT"       # web pages can't send custom headers cross-origin, so they can't drive us
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}  # blocks DNS-rebinding
-LEGACY_PATHS = {"/mic-command", "/meet-status", "/browser-key"}  # old userscript endpoints
 
 POLL_HOLD_S = 8.0                 # long-poll hold; the script re-polls instantly
 CLIENT_STALE_S = 12.0             # a tab silent this long is gone (must be > POLL_HOLD_S)
-LEGACY_WARN_S = 10.0
 
 ICON_FILE = "mic.ico"
 MIC_ON_ICON_FILE = "redmic.ico"
@@ -158,7 +156,6 @@ class Hub:
         self.pressed = False
         self.clients = {}         # tab id -> status reported by the userscript
         self.target = None        # the one tab allowed to open its mic
-        self.legacy_at = -1e9
 
     def _bump(self):
         self.version += 1
@@ -185,10 +182,6 @@ class Hub:
         with self.cond:
             self.pressed = False
             self._bump()
-
-    def mark_legacy(self):
-        with self.cond:
-            self.legacy_at = time.monotonic()
 
     def update_client(self, cid, d):
         now = time.monotonic()
@@ -246,8 +239,6 @@ class Hub:
             mic_on = any(c["micOn"] for c in clients)
             if not self.enabled:
                 problem = "PTT вимкнено"
-            elif time.monotonic() - self.legacy_at < LEGACY_WARN_S:
-                problem = "стара копія скрипта в Tampermonkey — видали її"
             elif not clients:
                 problem = "Google Meet не підключено"
             elif target is None:
@@ -335,7 +326,7 @@ class Server(ThreadingHTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "GoogleMeetPTT/5"
+    server_version = f"GoogleMeetPTT/{APP_VERSION}"
     timeout = 20  # drop half-open connections instead of leaking threads
 
     def log_message(self, *_args):
@@ -358,19 +349,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get("Host", "") not in ALLOWED_HOSTS:
             self._reply(403, {"error": "bad host"})
             return None
-        if path in LEGACY_PATHS:
-            hub.mark_legacy()
-            self._reply(410, {"error": "outdated userscript"})
-            return None
         if path == "/health":
             return path
-        proto = self.headers.get(AUTH_HEADER)
-        if proto is None:
+        if self.headers.get(AUTH_HEADER) is None:
             self._reply(403, {"error": "forbidden"})
-            return None
-        if proto != str(PROTO):
-            hub.mark_legacy()
-            self._reply(409, {"error": f"protocol {proto} != {PROTO}"})
             return None
         return path
 
@@ -387,7 +369,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self._route()
         if path == "/health":
-            self._reply(200, {"ok": True, "app": APP_NAME, "proto": PROTO, "pid": os.getpid()})
+            self._reply(200, {"ok": True, "app": APP_NAME, "version": APP_VERSION, "pid": os.getpid()})
         elif path:
             self._reply(404, {"error": "not found"})
 
@@ -440,7 +422,7 @@ def local_http(method, path, timeout):
         f"http://{HOST}:{PORT}{path}",
         data=b"{}" if method == "POST" else None,
         method=method,
-        headers={AUTH_HEADER: str(PROTO), "Content-Type": "application/json"},
+        headers={AUTH_HEADER: "1", "Content-Type": "application/json"},
     )
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # never send localhost via a system proxy
     with opener.open(req, timeout=timeout) as r:
@@ -498,7 +480,7 @@ def bind_retry(seconds):
 
 
 def acquire_server():
-    """Take the port. If a copy is already running, ask it to quit; kill it if it's hung or outdated."""
+    """Take the port. If a copy is already running, ask it to quit; kill it if it's hung."""
     srv = try_bind()
     if srv:
         return srv
@@ -509,7 +491,7 @@ def acquire_server():
         info = {}
     ours = info.get("app") == APP_NAME
 
-    if ours and "proto" in info:
+    if ours:
         print("[INIT] another instance is running — asking it to quit", flush=True)
         try:
             local_http("POST", "/quit", 1.0)
